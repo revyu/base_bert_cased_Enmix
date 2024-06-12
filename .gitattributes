@@ -1,0 +1,2 @@
+results/checkpoint-3000/model.safetensors filter=lfs diff=lfs merge=lfs -text
+finetuned_model/model.safetensors filter=lfs diff=lfs merge=lfs -text

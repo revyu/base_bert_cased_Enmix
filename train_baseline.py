@@ -43,6 +43,7 @@ metric = load_metric("accuracy")
 
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
+    logits = torch.tensor(logits)
     predictions = torch.argmax(logits, dim=-1)
     return metric.compute(predictions=predictions, references=labels)
 
@@ -56,7 +57,7 @@ training_args = TrainingArguments(
     num_train_epochs=3,
     weight_decay=0.01,
     fp16=True,
-    save_steps=1000, 
+    save_steps=300, 
     resume_from_checkpoint=True 
 )
 

@@ -74,7 +74,7 @@ class MixupTrainer(Trainer):
         logits = outputs.logits
 
         mixed_x, labels_a, labels_b, lam = mixup_data(logits, labels, self.alpha,self.beta,self.p)
-        criterion = torch.nn.BCEWithLogitsLoss()
+        criterion = torch.nn.CrossEntropyLoss()
         loss = mixup_criterion(criterion, mixed_x, labels_a, labels_b, lam)
 
         return (loss, outputs) if return_outputs else loss
@@ -102,8 +102,8 @@ trainer = MixupTrainer(
     eval_dataset=eval_dataset,
     compute_metrics=compute_metrics,
     alpha=1.0,
-    beta=3.0,
-    p=0.3  # Вероятность применения аугментации
+    beta=1,
+    p=1  # Вероятность применения аугментации
 )
 
 
@@ -116,7 +116,7 @@ end_py=time.time()
 print(f" train was {end_time_train - start_time_train} seconds")
 
 
-model.save_pretrained("./finetuned_model")
-tokenizer.save_pretrained("./finetuned_model")
+model.save_pretrained("./finetuned_model_without_p")
+tokenizer.save_pretrained("./finetuned_model_without_p")
 
 print("Model and tokenizer saved to ./finetuned_model")

@@ -23,7 +23,7 @@ model = BertForSequenceClassification.from_pretrained('bert-base-cased', num_lab
 for param in model.bert.parameters():
     param.requires_grad = False
 
-# Проверка, что только классификатор разморожен
+
 for name, param in model.named_parameters():
     if param.requires_grad:
         print(f"Layer {name} is trainable")
@@ -45,51 +45,53 @@ def compute_metrics(eval_pred):
     predictions = np.argmax(logits, axis=-1)
     return metric.compute(predictions=predictions, references=labels)
 
-# Реализация MixUp
-def mixup_data(x, y, alpha=1.0):
-    if alpha > 0:
-        lam = np.random.beta(alpha, alpha)
+# Реализация MixUp с вероятностью применения
+def mixup_data(x, y, alpha=1.0,beta=3.0 ,p=0.3):
+    if np.random.rand() < p:  # Применяем аугментацию с вероятностью p
+        
+        lam = np.random.beta(alpha, beta)
+        batch_size = x.size()[0]
+        index = torch.randperm(batch_size)
+        mixed_x = lam * x + (1 - lam) * x[index, :]
+        y_a, y_b = y, y[index]
+        return mixed_x, y_a, y_b, lam
     else:
-        lam = 1
-    batch_size = x.size()[0]
-    index = torch.randperm(batch_size)
-    mixed_x = lam * x + (1 - lam) * x[index, :]
-    y_a, y_b = y, y[index]
-    return mixed_x, y_a, y_b, lam
+        return x, y, y, 1
 
 def mixup_criterion(criterion, pred, y_a, y_b, lam):
     return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
 
 class MixupTrainer(Trainer):
-    def __init__(self, *args, alpha=1.0, **kwargs):
+    def __init__(self, *args, alpha=1.0, beta=3.0, p=0.4 ,**kwargs):
         super().__init__(*args, **kwargs)
         self.alpha = alpha
+        self.beta=beta
+        self.p=p
 
     def compute_loss(self, model, inputs, return_outputs=False):
         labels = inputs.pop("labels")
         outputs = model(**inputs)
         logits = outputs.logits
 
-        mixed_x, labels_a, labels_b, lam = mixup_data(logits, labels, self.alpha)
-        criterion = torch.nn.CrossEntropyLoss()
+        mixed_x, labels_a, labels_b, lam = mixup_data(logits, labels, self.alpha,self.beta,self.p)
+        criterion = torch.nn.BCEWithLogitsLoss()
         loss = mixup_criterion(criterion, mixed_x, labels_a, labels_b, lam)
 
         return (loss, outputs) if return_outputs else loss
 
-
+ 
 
 # Настройка параметров обучения
 training_args = TrainingArguments(
     output_dir="./results",
     eval_strategy="epoch",
-    learning_rate=2e-5,
-    per_device_train_batch_size=4,  
-    per_device_eval_batch_size=4,
+    learning_rate=5e-5,
+    per_device_train_batch_size=16,  
+    per_device_eval_batch_size=16,
     num_train_epochs=3,
-    weight_decay=0.01,
     fp16=True,
-    save_steps=1000,  # Сохранение модели каждые 1000 шагов
-    resume_from_checkpoint=True  # Продолжить с контрольной точки
+    save_steps=300,  
+    resume_from_checkpoint=True
 )
 
 
@@ -99,18 +101,19 @@ trainer = MixupTrainer(
     train_dataset=train_dataset,
     eval_dataset=eval_dataset,
     compute_metrics=compute_metrics,
-    alpha=1.0
+    alpha=1.0,
+    beta=3.0,
+    p=0.3  # Вероятность применения аугментации
 )
 
 
 # Измерение времени обучения
 start_time_train = time.time() 
-trainer.train(resume_from_checkpoint='results/checkpoint-3000')
+trainer.train()
 end_time_train = time.time()
 
 end_py=time.time()
 print(f" train was {end_time_train - start_time_train} seconds")
-print(f" all train.py was executed by {end_py-start_py}")
 
 
 model.save_pretrained("./finetuned_model")

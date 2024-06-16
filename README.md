@@ -4,6 +4,8 @@
 
 Проект направлен на демонстрацию процесса файнтюнинга модели [BERT-base-cased](https://huggingface.co/bert-base-cased) на задаче классификации отзывов из датасета [Rotten Tomatoes](https://huggingface.co/datasets/rotten_tomatoes) с использованием метода аугментации данных MixUp на уровне эмбеддингов. 
 
+https://arxiv.org/abs/2303.07864
+
 ## Структура репозитория
 
 - `finetuned_model/`: содержит конфигурационные файлы и веса модели.
@@ -17,7 +19,6 @@
 ## Установка 
 
 Для запуска трэйна понадобится cuda 11.8
-Файнтюн производился на GTX 1650 ~ 2 часа 
 
 1. 
    git clone https://github.com/revyu/base_bert_cased_Enmix.git
@@ -30,9 +31,7 @@
 3. 
     pip install -r requirements.txt
 
-## Licence
 
-MIT licence
 
 
 
